@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/am0y-mcp-fal-badge.png)](https://mseep.ai/app/am0y-mcp-fal)
+
 # fal.ai MCP Server
 
 A Model Context Protocol (MCP) server for interacting with fal.ai models and services.
