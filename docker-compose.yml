@@ -1,0 +1,15 @@
+services:
+  mcp-fal:
+    build: .
+    container_name: mcp-fal-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Uncomment if you need to expose ports for HTTP endpoints
+    # ports:
+    #   - "8000:8000"
+    # Uncomment if you need persistent storage
+    # volumes:
+    #   - ./data:/app/data

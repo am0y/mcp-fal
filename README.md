@@ -22,15 +22,20 @@ A Model Context Protocol (MCP) server for interacting with fal.ai models and ser
 
 ## Installation
 
+### Manual Installation (Recommended)
+
 1. Clone this repository:
 ```bash
 git clone https://github.com/am0y/mcp-fal.git
 cd mcp-fal
 ```
 
-2. Install the required packages:
+2. Create a virtual environment and install dependencies:
 ```bash
-pip install fastmcp httpx aiofiles
+python -m venv venv
+venv/Scripts/pip install -r requirements.txt  # Windows
+# OR
+venv/bin/pip install -r requirements.txt      # Linux/Mac
 ```
 
 3. Set your fal.ai API key as an environment variable:
@@ -38,35 +43,160 @@ pip install fastmcp httpx aiofiles
 export FAL_KEY="YOUR_FAL_API_KEY_HERE"
 ```
 
+### Docker Installation (Experimental)
+
+1. Clone this repository:
+```bash
+git clone https://github.com/am0y/mcp-fal.git
+cd mcp-fal
+```
+
+2. Copy the environment template and add your API key:
+```bash
+cp .env.example .env
+# Edit .env and add your fal.ai API key
+```
+
+3. Start the server:
+```bash
+docker-compose up -d
+```
+
 ## Usage
 
-### Running the Server
+> [!IMPORTANT]
+> **For MCP Integration (VS Code, Claude Desktop, Antigravity)**
+>
+> **✅ Use Option 2 (Direct Python Execution)** - This is the correct and recommended approach.
+>
+> **❌ Do NOT use Docker** - MCP servers use stdio transport and must be spawned by MCP clients. Docker containers will exit immediately because there's no stdin connection.
 
-You can run the server in development mode with:
+> [!NOTE]
+> **Why Docker doesn't work for MCP**
+>
+> MCP servers communicate via standard input/output (stdio). They're designed to be spawned as child processes by MCP clients, not run as standalone services. When you try to run an MCP server in Docker, it starts, finds no stdin connection, and exits immediately.
+
+---
+
+### Option 1: Virtual Environment Setup (Recommended for MCP Integration)
+
+**Prerequisites**: Python 3.10+ installed
+
+#### Step 1: Create Virtual Environment
+
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate it (optional, for manual testing)
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+```
+
+#### Step 2: Install Dependencies
+
+```bash
+# Windows
+venv/Scripts/pip install -r requirements.txt
+
+# Linux/Mac
+venv/bin/pip install -r requirements.txt
+```
+
+#### Step 3: Set Up API Key
+
+Create a `.env` file in the project root:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your fal.ai API key:
+```
+FAL_KEY=your_actual_fal_api_key_here
+```
+
+---
+
+### Option 2: Testing the Server Locally
+
+**For local testing and development** (not required for MCP integration):
+
+#### FastMCP Dev Mode
+
+Launch the MCP Inspector web interface to test tools interactively:
 
 ```bash
 fastmcp dev main.py
 ```
 
-This will launch the MCP Inspector web interface where you can test the tools interactively.
+#### Direct Execution
 
-### Installing in Claude Desktop
-
-To use the server with Claude Desktop:
+Run the server directly (will wait for stdio input):
 
 ```bash
-fastmcp install main.py -e FAL_KEY="YOUR_FAL_API_KEY_HERE"
+venv/Scripts/python main.py  # Windows
+venv/bin/python main.py      # Linux/Mac
 ```
 
-This will make the server available to Claude in the Desktop app.
+---
 
-### Running Directly
+## MCP Integration Configuration
 
-You can also run the server directly:
+**After setting up the virtual environment above**, configure your MCP client:
 
-```bash
-python main.py
+### For Claude Desktop
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac):
+```json
+{
+    "mcpServers": {
+        "fal": {
+            "command": "d:/Projects/python/mcp-fal/venv/Scripts/python.exe",
+            "args": ["d:/Projects/python/mcp-fal/main.py"],
+            "env": {
+                "FAL_KEY": "your_fal_api_key_here"
+            }
+        }
+    }
+}
 ```
+
+**For VS Code/Antigravity** (MCP settings):
+```json
+{
+    "mcpServers": {
+        "fal": {
+            "command": "d:/Projects/python/mcp-fal/venv/Scripts/python.exe",
+            "args": ["d:/Projects/python/mcp-fal/main.py"],
+            "env": {
+                "FAL_KEY": "your_fal_api_key_here"
+            }
+        }
+    }
+}
+```
+
+**For Linux/Mac**, use:
+```json
+{
+    "mcpServers": {
+        "fal": {
+            "command": "/absolute/path/to/mcp-fal/venv/bin/python",
+            "args": ["/absolute/path/to/mcp-fal/main.py"],
+            "env": {
+                "FAL_KEY": "your_fal_api_key_here"
+            }
+        }
+    }
+}
+```
+
+> **Key Point**: Use the **venv Python interpreter** (`venv/Scripts/python.exe` on Windows or `venv/bin/python` on Linux/Mac) so all dependencies are available.
+
+> **Security Tip**: Instead of hardcoding your API key, you can:
+> 1. Set `FAL_KEY` as a system environment variable
+> 2. Use `"FAL_KEY": "${env:FAL_KEY}"` in the config to reference it
+> 3. Or create a `.env` file in the project directory and the server will load it automatically
 
 ## API Reference
 
@@ -80,6 +210,41 @@ python main.py
 - `status(url)` - Check status of a queued request
 - `cancel(url)` - Cancel a queued request
 - `upload(path` - Upload a file to fal.ai CDN
+
+---
+
+## Appendix: Docker Setup (Experimental)
+
+> [!WARNING]
+> **This Docker setup is experimental and does NOT work for MCP integration.**
+>
+> MCP servers use stdio transport and must be spawned by MCP clients. Docker containers will exit immediately because there's no stdin connection. This is kept for educational purposes and potential future experimentation.
+
+### Docker Files Included
+
+- `Dockerfile` - Python 3.10-slim image with dependencies
+- `docker-compose.yml` - Compose configuration with auto-restart
+- `.dockerignore` - Excludes unnecessary files from build
+
+### Building the Docker Image
+
+```bash
+docker-compose build
+```
+
+### Running (Will Exit Immediately)
+
+```bash
+docker-compose up -d
+```
+
+The container will start and exit immediately because MCP servers require an active stdin connection.
+
+### Why This Doesn't Work
+
+MCP servers communicate via standard input/output (stdio). They're designed to be spawned as child processes by MCP clients, not run as standalone services. When run in Docker without an active stdin connection, the server starts, finds no input stream, and exits.
+
+---
 
 ## License
 
